@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Canvas } from "@react-three/fiber";
 
 const ComputersCanvas = () => {
   const [isMobile, setIsMobile] = useState(false);
@@ -32,22 +33,43 @@ const ComputersCanvas = () => {
     };
   }, []);
 
-  // Always render a visible fallback to test rendering
-  return (
-    <div
-      className="w-full h-full flex items-center justify-center text-white text-center"
-      style={{ background: "black", minHeight: "100vh" }}
-    >
-      {isWebGLSupported && !error ? (
-        <div>WebGL is supported, but Canvas is not rendering. Check console for errors.</div>
-      ) : (
-        <div>{error || "Your device doesn’t support 3D visuals."}</div>
-      )}
-    </div>
-  );
+  // Fallback for WebGL or errors
+  if (!isWebGLSupported || error) {
+    return (
+      <div className="w-full h-full flex items-center justify-center text-white text-center bg-black">
+        {error || "Your device doesn’t support 3D visuals."}
+      </div>
+    );
+  }
+
+  try {
+    return (
+      <Canvas
+        frameloop="demand"
+        camera={{ position: [5, 5, 5], fov: 25 }}
+        gl={{ antialias: false, failIfMajorPerformanceCaveat: true }}
+        style={{ height: "100%", width: "100%", background: "black" }}
+        onCreated={({ gl }) => {
+          console.log("WebGL context created:", !!gl);
+        }}
+        onError={(err) => {
+          console.error("Canvas error:", err);
+          setError("Canvas failed: " + err.message);
+        }}
+      >
+        <ambientLight intensity={0.5} />
+      </Canvas>
+    );
+  } catch (err) {
+    console.error("Canvas rendering error:", err);
+    return (
+      <div className="w-full h-full flex items-center justify-center text-white text-center bg-black">
+        Canvas failed: {err.message || "Unknown error"}
+      </div>
+    );
+  }
 };
 
-// Error boundary to catch rendering errors
 class ErrorBoundary extends React.Component {
   state = { hasError: false, error: null };
 
