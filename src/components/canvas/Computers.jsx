@@ -1,19 +1,5 @@
-import React, { Suspense, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
-
-import CanvasLoader from "../Loader";
-
-// Simple cube component to test rendering
-const SimpleCube = ({ isMobile }) => {
-  return (
-    <mesh>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="purple" />
-      <pointLight intensity={0.5} position={[10, 10, 10]} />
-    </mesh>
-  );
-};
 
 const ComputersCanvas = () => {
   const [isMobile, setIsMobile] = useState(false);
@@ -60,17 +46,10 @@ const ComputersCanvas = () => {
     <Canvas
       frameloop="demand"
       camera={{ position: [5, 5, 5], fov: 25 }}
-      gl={{ antialias: !isMobile }} // Disable antialiasing on mobile
+      gl={{ antialias: !isMobile }}
       style={{ height: "100%", width: "100%", background: "black" }}
     >
-      <Suspense fallback={<CanvasLoader />}>
-        <OrbitControls
-          enableZoom={false}
-          maxPolarAngle={Math.PI / 2}
-          minPolarAngle={Math.PI / 2}
-        />
-        <SimpleCube isMobile={isMobile} />
-      </Suspense>
+      {/* Empty canvas to test WebGL initialization */}
     </Canvas>
   );
 };
