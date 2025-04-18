@@ -1,31 +1,16 @@
 import React, { Suspense, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Preload, useGLTF } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 
 import CanvasLoader from "../Loader";
 
-const Computers = ({ isMobile }) => {
-  const computer = useGLTF("./desktop_pc/scene.gltf");
-
+// Simple cube component to test rendering
+const SimpleCube = ({ isMobile }) => {
   return (
     <mesh>
-      <hemisphereLight intensity={0.15} groundColor="black" />
-      {/* Disable shadows on mobile to improve performance */}
-      <spotLight
-        position={[-20, 50, 10]}
-        angle={0.12}
-        penumbra={1}
-        intensity={1}
-        castShadow={!isMobile} // Disable shadows on mobile
-        shadow-mapSize={isMobile ? 512 : 1024} // Lower resolution on mobile
-      />
-      <pointLight intensity={0.8} /> {/* Reduced intensity */}
-      <primitive
-        object={computer.scene}
-        scale={isMobile ? 0.6 : 0.75} // Slightly smaller scale for mobile
-        position={isMobile ? [0, -3, -2.2] : [0, -3.25, -1.5]}
-        rotation={[-0.01, -0.2, -0.1]}
-      />
+      <boxGeometry args={[1, 1, 1]} />
+      <meshStandardMaterial color="purple" />
+      <pointLight intensity={0.5} position={[10, 10, 10]} />
     </mesh>
   );
 };
@@ -33,14 +18,19 @@ const Computers = ({ isMobile }) => {
 const ComputersCanvas = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isWebGLSupported, setIsWebGLSupported] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Check WebGL support and screen size
   useEffect(() => {
     // WebGL support check
-    const canvas = document.createElement("canvas");
-    const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-    if (!gl) {
+    try {
+      const canvas = document.createElement("canvas");
+      const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+      if (!gl) {
+        setIsWebGLSupported(false);
+      }
+    } catch (err) {
       setIsWebGLSupported(false);
+      setError("Failed to initialize WebGL");
     }
 
     // Screen size check
@@ -57,11 +47,11 @@ const ComputersCanvas = () => {
     };
   }, []);
 
-  // Fallback for WebGL not supported
-  if (!isWebGLSupported) {
+  // Fallback for WebGL or errors
+  if (!isWebGLSupported || error) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-white text-center">
-        Your device doesn’t support 3D visuals.
+      <div className="w-full h-full flex items-center justify-center text-white text-center bg-black">
+        {error || "Your device doesn’t support 3D visuals."}
       </div>
     );
   }
@@ -69,11 +59,9 @@ const ComputersCanvas = () => {
   return (
     <Canvas
       frameloop="demand"
-      shadows={!isMobile} // Disable shadows on mobile
-      dpr={[1, 1.5]} // Lower DPR for mobile performance
-      camera={{ position: [20, 3, 5], fov: 25 }}
-      gl={{ preserveDrawingBuffer: true, antialias: !isMobile }} // Disable antialiasing on mobile
-      style={{ height: "100%", width: "100%" }} // Ensure canvas fits container
+      camera={{ position: [5, 5, 5], fov: 25 }}
+      gl={{ antialias: !isMobile }} // Disable antialiasing on mobile
+      style={{ height: "100%", width: "100%", background: "black" }}
     >
       <Suspense fallback={<CanvasLoader />}>
         <OrbitControls
@@ -81,11 +69,37 @@ const ComputersCanvas = () => {
           maxPolarAngle={Math.PI / 2}
           minPolarAngle={Math.PI / 2}
         />
-        <Computers isMobile={isMobile} />
+        <SimpleCube isMobile={isMobile} />
       </Suspense>
-      <Preload all />
     </Canvas>
   );
 };
 
-export default ComputersCanvas;
+// Error boundary to catch rendering errors
+class ErrorBoundary extends React.Component {
+  state = { hasError: false, error: null };
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-full h-full flex items-center justify-center text-white text-center bg-black">
+          Failed to load 3D content: {this.state.error?.message || "Unknown error"}
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Wrap ComputersCanvas in ErrorBoundary
+const WrappedComputersCanvas = () => (
+  <ErrorBoundary>
+    <ComputersCanvas />
+  </ErrorBoundary>
+);
+
+export default WrappedComputersCanvas;
