@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { Canvas } from "@react-three/fiber";
 
 const ComputersCanvas = () => {
   const [isMobile, setIsMobile] = useState(false);
@@ -7,18 +6,6 @@ const ComputersCanvas = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // WebGL support check
-    try {
-      const canvas = document.createElement("canvas");
-      const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-      if (!gl) {
-        setIsWebGLSupported(false);
-      }
-    } catch (err) {
-      setIsWebGLSupported(false);
-      setError("Failed to initialize WebGL");
-    }
-
     // Screen size check
     const mediaQuery = window.matchMedia("(max-width: 500px)");
     setIsMobile(mediaQuery.matches);
@@ -28,29 +15,35 @@ const ComputersCanvas = () => {
     };
     mediaQuery.addEventListener("change", handleMediaQueryChange);
 
+    // WebGL support check
+    try {
+      const canvas = document.createElement("canvas");
+      const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+      if (!gl) {
+        setIsWebGLSupported(false);
+      }
+    } catch (err) {
+      setIsWebGLSupported(false);
+      setError("Failed to initialize WebGL: " + err.message);
+    }
+
     return () => {
       mediaQuery.removeEventListener("change", handleMediaQueryChange);
     };
   }, []);
 
-  // Fallback for WebGL or errors
-  if (!isWebGLSupported || error) {
-    return (
-      <div className="w-full h-full flex items-center justify-center text-white text-center bg-black">
-        {error || "Your device doesn’t support 3D visuals."}
-      </div>
-    );
-  }
-
+  // Always render a visible fallback to test rendering
   return (
-    <Canvas
-      frameloop="demand"
-      camera={{ position: [5, 5, 5], fov: 25 }}
-      gl={{ antialias: !isMobile }}
-      style={{ height: "100%", width: "100%", background: "black" }}
+    <div
+      className="w-full h-full flex items-center justify-center text-white text-center"
+      style={{ background: "black", minHeight: "100vh" }}
     >
-      {/* Empty canvas to test WebGL initialization */}
-    </Canvas>
+      {isWebGLSupported && !error ? (
+        <div>WebGL is supported, but Canvas is not rendering. Check console for errors.</div>
+      ) : (
+        <div>{error || "Your device doesn’t support 3D visuals."}</div>
+      )}
+    </div>
   );
 };
 
@@ -66,7 +59,7 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div className="w-full h-full flex items-center justify-center text-white text-center bg-black">
-          Failed to load 3D content: {this.state.error?.message || "Unknown error"}
+          Failed to load content: {this.state.error?.message || "Unknown error"}
         </div>
       );
     }
@@ -74,7 +67,6 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// Wrap ComputersCanvas in ErrorBoundary
 const WrappedComputersCanvas = () => (
   <ErrorBoundary>
     <ComputersCanvas />
